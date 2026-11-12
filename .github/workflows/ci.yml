@@ -1,0 +1,32 @@
+name: tests
+
+# 协作开发时每次 push / PR 都自动跑测试，保证 main 分支始终可运行
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  unittest:
+    name: unit tests (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: 运行单元测试
+        run: python -m unittest discover -s tests -t . -v
+
+      - name: 跑一遍演示脚本
+        run: python main.py --demo
