@@ -7,7 +7,7 @@
     * 计算小计、学生折扣金额与应付总价
     * checkout 结算，生成小票（Receipt）
 
-不依赖任何第三方库，Python 3.9+ 即可运行。
+不依赖任何第三方库，Python 3.10+ 即可运行（3.9 已 EOL，见 .github/workflows/ci.yml）。
 """
 
 from __future__ import annotations

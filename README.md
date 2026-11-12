@@ -3,6 +3,10 @@
 一个不依赖第三方库的 Python 购物车小项目：添加商品、记录数量与单价、计算小计与总价、
 支持学生折扣、`checkout` 结算并生成小票，附完整单元测试，可直接用于课程作业 / 小组协作开发。
 
+运行环境：Python 3.10+（3.9 已 EOL，CI 矩阵为 3.10–3.13）。
+
+[![tests](https://github.com/zmjjkk-ht/shopping-cart/actions/workflows/ci.yml/badge.svg)](https://github.com/zmjjkk-ht/shopping-cart/actions/workflows/ci.yml)
+
 ## 功能
 
 | 功能 | 说明 |
