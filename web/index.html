@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>购物车 · Python 版</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23b04a26'/%3E%3Cpath d='M9 11h13l-1.7 10H10.7L9 11zm2.2 0V8.6a3.1 3.1 0 0 1 6.2 0' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --paper: #f7f3ec;
+    --card: #fffdf8;
+    --ink: #221f1b;
+    --muted: #756d5f;
+    --line: #e4dccd;
+    --accent: #b04a26;
+    --accent-deep: #8f3a1c;
+    --accent-soft: #f6e6de;
+    --ok: #2f6a4c;
+    --err: #a3301f;
+    --radius: 14px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell { max-width: 720px; margin: 0 auto; padding: 20px 16px 48px; }
+
+  header { margin-bottom: 16px; }
+  h1 { margin: 0 0 6px; font-size: 26px; letter-spacing: .02em; }
+  .lead { margin: 0; color: var(--muted); font-size: 13px; }
+  .panel-title { margin: 0 0 12px; font-size: 14px; letter-spacing: .1em; color: var(--muted); }
+
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+
+  /* ---------- 添加表单 ---------- */
+  .add-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 10px;
+  }
+
+  .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .field.name { grid-column: 1 / -1; }
+  .add-form .submit { grid-column: 1 / -1; }
+
+  .field label {
+    font-size: 12px;
+    letter-spacing: .06em;
+    color: var(--muted);
+  }
+
+  input[type="text"], input[type="number"] {
+    width: 100%;
+    min-width: 0;
+    font: inherit;
+    font-size: 16px;
+    padding: 11px 12px;
+    color: var(--ink);
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+
+  input[type="text"]:focus, input[type="number"]:focus {
+    outline: 2px solid var(--accent-soft);
+    border-color: var(--accent);
+  }
+
+  .note { margin: 10px 0 0; color: var(--muted); font-size: 12px; }
+
+  /* ---------- 按钮 ---------- */
+  button {
+    font: inherit;
+    cursor: pointer;
+    min-height: 44px;
+    padding: 0 18px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+  }
+
+  button:disabled { cursor: not-allowed; }
+
+  .primary { width: 100%; background: var(--accent); color: #fff; font-weight: 600; }
+  .primary:hover:enabled { background: var(--accent-deep); }
+  .primary:disabled { background: var(--line); color: var(--muted); }
+
+  .ghost {
+    min-height: 36px;
+    padding: 0 12px;
+    font-size: 13px;
+    color: var(--muted);
+    background: transparent;
+    border-color: var(--line);
+  }
+  .ghost:hover:enabled { color: var(--accent-deep); border-color: var(--accent); }
+
+  /* ---------- 清单 ---------- */
+  .list-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+  .list-head h2 { margin: 0; font-size: 15px; letter-spacing: .02em; }
+
+  .badge {
+    margin-left: 8px;
+    padding: 2px 9px;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--accent-deep);
+    background: var(--accent-soft);
+    border-radius: 999px;
+  }
+
+  .items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "name total" "qty del";
+    gap: 8px 10px;
+    padding: 10px 12px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+  }
+
+  .row-name { grid-area: name; min-width: 0; }
+  .row-name .n { font-weight: 600; overflow-wrap: anywhere; }
+  .row-name .p { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+  .row-qty { grid-area: qty; display: flex; align-items: center; gap: 6px; }
+
+  .step {
+    width: 44px;
+    min-height: 44px;
+    padding: 0;
+    font-size: 18px;
+    line-height: 1;
+    background: #f8f3ea;
+    border: 1px solid var(--line);
+    color: var(--ink);
+  }
+  .step:hover:enabled { color: var(--accent-deep); border-color: var(--accent); }
+
+  .qty-num {
+    min-width: 28px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .row-total {
+    grid-area: total;
+    align-self: start;
+    text-align: right;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .row-del {
+    grid-area: del;
+    justify-self: end;
+    width: 44px;
+    min-height: 44px;
+    padding: 0;
+    font-size: 20px;
+    color: var(--muted);
+    background: transparent;
+  }
+  .row-del:hover { color: var(--err); background: #faece8; }
+
+  .empty {
+    margin: 0;
+    padding: 22px 12px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+    background: #faf6ee;
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+  }
+
+  /* ---------- 结算 ---------- */
+  .switch {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    margin-bottom: 6px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .switch input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+
+  .totals dl { margin: 0 0 14px; }
+  .totals dl > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 7px 0;
+    border-bottom: 1px dashed var(--line);
+    font-size: 14px;
+  }
+  .totals dl > div:last-child { border-bottom: 0; }
+  .totals dt { color: var(--muted); }
+  .totals dd { margin: 0; font-variant-numeric: tabular-nums; }
+  .grand { padding-top: 12px !important; }
+  .grand dt { font-size: 15px; color: var(--ink); font-weight: 600; }
+  .grand dd { font-size: 18px; font-weight: 700; color: var(--accent-deep); }
+
+  /* ---------- 小票 ---------- */
+  .receipt pre {
+    margin: 0 0 14px;
+    padding: 14px;
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.55;
+    white-space: pre;
+    overflow-x: auto;
+    background: #fbf7ef;
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+  }
+
+  /* ---------- 提示 ---------- */
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    max-width: calc(100vw - 32px);
+    padding: 10px 16px;
+    font-size: 13px;
+    color: #fff;
+    background: var(--ink);
+    border-radius: 999px;
+    opacity: 0;
+    transform: translate(-50%, 16px);
+    transition: opacity .18s ease, transform .18s ease;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .toast.err { background: var(--err); }
+
+  /* ---------- 宽屏 ---------- */
+  @media (min-width: 600px) {
+    .shell { padding: 32px 24px 56px; }
+    h1 { font-size: 30px; }
+    .panel { padding: 20px; }
+    .add-form { grid-template-columns: 2fr 1fr 1fr auto; align-items: end; }
+    .field.name { grid-column: auto; }
+    .add-form .submit { grid-column: auto; width: auto; padding: 0 22px; }
+    .row {
+      grid-template-columns: 1fr 128px 96px 44px;
+      grid-template-areas: "name qty total del";
+      align-items: center;
+    }
+    .row-total { align-self: center; }
+  }
+</style>
+</head>
+<body>
+<main class="shell">
+  <header>
+    <h1>购物车</h1>
+    <p class="lead">金额由 Python 后端用 Decimal 计算，与命令行版同一套规则。</p>
+  </header>
+
+  <!-- ===== 添加商品 ===== -->
+  <section class="panel" aria-labelledby="add-title">
+    <h2 id="add-title" class="panel-title">添加商品</h2>
+    <form id="add-form" class="add-form" autocomplete="off">
+      <div class="field name">
+        <label for="name">商品名称</label>
+        <input id="name" name="name" type="text" placeholder="例如 苹果" required maxlength="40">
+      </div>
+      <div class="field">
+        <label for="price">单价（元）</label>
+        <input id="price" name="price" type="text" inputmode="decimal" placeholder="12.50" required>
+      </div>
+      <div class="field">
+        <label for="qty">数量</label>
+        <input id="qty" name="quantity" type="number" min="1" step="1" value="1">
+      </div>
+      <button type="submit" class="primary submit">加入购物车</button>
+    </form>
+    <p class="note">同名同价会自动累加数量；同名不同价会单独成行，可当促销价用。</p>
+  </section>
+
+  <!-- ===== 商品清单 ===== -->
+  <section class="panel" aria-labelledby="list-title">
+    <div class="list-head">
+      <h2 id="list-title">商品清单<span id="count" class="badge">0 件</span></h2>
+      <button id="clear" class="ghost" type="button">清空</button>
+    </div>
+    <ul id="items" class="items" aria-live="polite"></ul>
+    <p id="empty" class="empty">购物车还是空的，先在上面加一件商品。</p>
+  </section>
+
+  <!-- ===== 结算 ===== -->
+  <section class="panel totals" aria-labelledby="total-title">
+    <h2 id="total-title" class="panel-title">结算</h2>
+    <label class="switch" for="student">
+      <input id="student" type="checkbox">
+      <span>学生身份 · 按 9 折结算</span>
+    </label>
+    <dl>
+      <div><dt>商品小计</dt><dd id="subtotal">¥0.00</dd></div>
+      <div><dt>学生折扣</dt><dd id="discount">-¥0.00</dd></div>
+      <div class="grand"><dt>应付总额</dt><dd id="total">¥0.00</dd></div>
+    </dl>
+    <button id="checkout" class="primary" type="button" disabled>结算 checkout</button>
+  </section>
+
+  <!-- ===== 小票 ===== -->
+  <section id="receipt-panel" class="panel receipt" aria-labelledby="receipt-title" hidden>
+    <div class="list-head">
+      <h2 id="receipt-title">结算小票</h2>
+      <button id="copy" class="ghost" type="button">复制文本</button>
+    </div>
+    <pre id="receipt"></pre>
+    <button id="new-order" class="primary" type="button">再开一单</button>
+  </section>
+</main>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var state = null;
+  var toastTimer = null;
+
+  function $(id) { return document.getElementById(id); }
+
+  function toast(message, isError) {
+    var el = $("toast");
+    el.textContent = message;
+    el.classList.toggle("err", !!isError);
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove("show"); }, 2600);
+  }
+
+  async function api(path, options) {
+    var opts = options || {};
+    var res = await fetch(path, {
+      headers: { "Content-Type": "application/json" },
+      method: opts.method || "GET",
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    });
+    var data = null;
+    try { data = await res.json(); } catch (err) { data = null; }
+    if (!res.ok) {
+      throw new Error((data && data.error) || ("请求失败：" + res.status));
+    }
+    return data;
+  }
+
+  function el(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) { node.className = className; }
+    if (text !== undefined && text !== null) { node.textContent = text; }
+    return node;
+  }
+
+  function rowFor(item) {
+    var li = el("li", "row");
+
+    var nameBox = el("div", "row-name");
+    nameBox.appendChild(el("div", "n", item.name));
+    nameBox.appendChild(el("div", "p", "单价 ¥" + item.unit_price));
+
+    var qtyBox = el("div", "row-qty");
+    var decBtn = el("button", "step", "−");
+    decBtn.type = "button";
+    decBtn.dataset.action = "dec";
+    decBtn.dataset.name = item.name;
+    decBtn.dataset.price = item.unit_price;
+    decBtn.setAttribute("aria-label", "减少 " + item.name + " 的数量");
+    if (item.quantity <= 1) { decBtn.disabled = true; }
+    qtyBox.appendChild(decBtn);
+
+    qtyBox.appendChild(el("span", "qty-num", String(item.quantity)));
+
+    var incBtn = el("button", "step", "+");
+    incBtn.type = "button";
+    incBtn.dataset.action = "inc";
+    incBtn.dataset.name = item.name;
+    incBtn.dataset.price = item.unit_price;
+    incBtn.setAttribute("aria-label", "增加 " + item.name + " 的数量");
+    qtyBox.appendChild(incBtn);
+
+    var totalBox = el("div", "row-total", "¥" + item.line_total);
+
+    var delBtn = el("button", "row-del", "×");
+    delBtn.type = "button";
+    delBtn.dataset.action = "del";
+    delBtn.dataset.name = item.name;
+    delBtn.dataset.price = item.unit_price;
+    delBtn.setAttribute("aria-label", "删除 " + item.name);
+
+    li.appendChild(nameBox);
+    li.appendChild(qtyBox);
+    li.appendChild(totalBox);
+    li.appendChild(delBtn);
+    return li;
+  }
+
+  function render(next) {
+    state = next;
+
+    $("count").textContent = state.item_count + " 件";
+
+    var list = $("items");
+    list.textContent = "";
+    state.items.forEach(function (item) { list.appendChild(rowFor(item)); });
+
+    var hasItems = state.items.length > 0;
+    list.hidden = !hasItems;
+    $("empty").hidden = hasItems;
+
+    $("subtotal").textContent = "¥" + state.subtotal;
+    $("discount").textContent = "-¥" + state.discount;
+    $("total").textContent = "¥" + state.total;
+    $("student").checked = !!state.student;
+
+    $("clear").disabled = !hasItems;
+    $("checkout").disabled = !hasItems;
+  }
+
+  function findItem(name, price) {
+    return state.items.filter(function (item) {
+      return item.name === name && item.unit_price === price;
+    })[0];
+  }
+
+  /* ---------- 添加商品 ---------- */
+  $("add-form").addEventListener("submit", function (event) {
+    event.preventDefault();
+    var name = $("name").value.trim();
+    var price = $("price").value.trim();
+    var qty = $("qty").value.trim();
+
+    if (!name) { toast("商品名称不能为空", true); return; }
+
+    api("/api/items", { method: "POST", body: { name: name, price: price, quantity: qty || "1" } })
+      .then(function (data) {
+        render(data);
+        $("name").value = "";
+        $("price").value = "";
+        $("qty").value = "1";
+        $("name").focus();
+        toast("已加入：" + name);
+      })
+      .catch(function (err) { toast(err.message, true); });
+  });
+
+  /* ---------- 加减数量 / 删除 ---------- */
+  $("items").addEventListener("click", function (event) {
+    var btn = event.target.closest("button[data-action]");
+    if (!btn || !state) { return; }
+
+    var item = findItem(btn.dataset.name, btn.dataset.price);
+    if (!item) { return; }
+
+    var request;
+    if (btn.dataset.action === "inc") {
+      request = api("/api/items", {
+        method: "PUT",
+        body: { name: item.name, price: item.unit_price, quantity: item.quantity + 1 }
+      });
+    } else if (btn.dataset.action === "dec") {
+      request = api("/api/items", {
+        method: "PUT",
+        body: { name: item.name, price: item.unit_price, quantity: item.quantity - 1 }
+      });
+    } else {
+      request = api("/api/items", {
+        method: "DELETE",
+        body: { name: item.name, price: item.unit_price }
+      });
+    }
+
+    request.then(render).catch(function (err) { toast(err.message, true); });
+  });
+
+  /* ---------- 学生身份 ---------- */
+  $("student").addEventListener("change", function () {
+    api("/api/student", { method: "POST", body: { student: $("student").checked } })
+      .then(render)
+      .catch(function (err) {
+        toast(err.message, true);
+        $("student").checked = !!state.student;
+      });
+  });
+
+  /* ---------- 清空 ---------- */
+  $("clear").addEventListener("click", function () {
+    if (!confirm("确定清空购物车？")) { return; }
+    api("/api/clear", { method: "POST", body: {} })
+      .then(function (data) {
+        render(data);
+        toast("购物车已清空");
+      })
+      .catch(function (err) { toast(err.message, true); });
+  });
+
+  /* ---------- 结算 ---------- */
+  $("checkout").addEventListener("click", function () {
+    api("/api/checkout", { method: "POST", body: { student: $("student").checked, clear: true } })
+      .then(function (payload) {
+        render(payload.state);
+        $("receipt").textContent = payload.text;
+        $("receipt-panel").hidden = false;
+        toast("结算完成，共 " + payload.item_count + " 件");
+        $("receipt-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+      })
+      .catch(function (err) { toast(err.message, true); });
+  });
+
+  /* ---------- 复制小票 / 再开一单 ---------- */
+  $("copy").addEventListener("click", function () {
+    var text = $("receipt").textContent;
+    if (!text) { return; }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text)
+        .then(function () { toast("小票已复制"); })
+        .catch(function () { toast("复制失败，请手动选中复制", true); });
+    } else {
+      toast("当前浏览器不支持自动复制，请手动选中", true);
+    }
+  });
+
+  $("new-order").addEventListener("click", function () {
+    $("receipt-panel").hidden = true;
+    $("receipt").textContent = "";
+    $("name").focus();
+  });
+
+  /* ---------- 初始化 ---------- */
+  api("/api/state")
+    .then(render)
+    .catch(function (err) { toast("加载失败：" + err.message, true); });
+})();
+</script>
+</body>
+</html>
